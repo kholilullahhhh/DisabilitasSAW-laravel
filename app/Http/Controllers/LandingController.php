@@ -27,14 +27,14 @@ class LandingController extends Controller
             ->orderByDesc("jumlah")
             ->first();
 
-        // Query Kecamatan (tidak diubah)
+        // Query Kecamatan 
         $kecamatanData = DB::table('tb_kodepos')
             ->select('tb_kodepos.kecamatan as kecamatan')
             ->selectRaw("(SELECT COUNT(warga.kecamatan) FROM `warga` WHERE warga.kecamatan = tb_kodepos.kecamatan AND warga.jumlah='y') as disabilitas_count")
             ->groupBy('tb_kodepos.kecamatan')
             ->get();
 
-        // Bubble Sort (tidak diubah)
+        // Bubble Sort 
         $nilai = $kecamatanData;
         $n = count($nilai);
         for ($i = 0; $i < $n - 1; $i++) {
@@ -65,8 +65,14 @@ class LandingController extends Controller
         }
 
         // =====================================================
-        //              🔥 SAW METHOD DITAMBAHKAN
+        //              🔥 SAW METHOD DENGAN RATA-RATA
         // =====================================================
+
+        // Hitung rata-rata jumlah disabilitas
+        $totalDisabilitas = $kecamatanData->sum('disabilitas_count');
+        $rataRataDisabilitas = count($kecamatanData) > 0
+            ? $totalDisabilitas / count($kecamatanData)
+            : 0;
 
         // Ambil nilai maksimum untuk normalisasi (benefit)
         $maxDisabilitas = $kecamatanData->max('disabilitas_count');
@@ -74,21 +80,42 @@ class LandingController extends Controller
         // Bobot SAW (bisa disesuaikan)
         $bobotDisabilitas = 1; // hanya 1 kriteria, jadi bobot = 1
 
-        // Normalisasi + perhitungan SAW
+        // Normalisasi + perhitungan SAW dengan pertimbangan rata-rata
         $sawResults = [];
 
         foreach ($kecamatanData as $item) {
+            // Normalisasi standar
             $normalisasi = $maxDisabilitas > 0
                 ? $item->disabilitas_count / $maxDisabilitas
                 : 0;
 
-            $score = $normalisasi * $bobotDisabilitas;
+            // Score SAW dasar
+            $scoreDasar = $normalisasi * $bobotDisabilitas;
+
+            // Bonus/Malus berdasarkan perbandingan dengan rata-rata
+            $deviasiDariRataRata = $rataRataDisabilitas > 0
+                ? ($item->disabilitas_count - $rataRataDisabilitas) / $rataRataDisabilitas
+                : 0;
+
+            // Faktor koreksi berdasarkan deviasi (maksimal ±20%)
+            $faktorKoreksi = 1 + ($deviasiDariRataRata * 0.2);
+
+            // Score akhir dengan koreksi rata-rata
+            $scoreAkhir = $scoreDasar * $faktorKoreksi;
+
+            // Pastikan score tidak negatif dan tidak lebih dari 1
+            $scoreAkhir = max(0, min(1, $scoreAkhir));
 
             $sawResults[] = [
                 'kecamatan' => $item->kecamatan,
                 'disabilitas_count' => $item->disabilitas_count,
                 'normalisasi' => $normalisasi,
-                'score' => $score
+                'score_dasar' => $scoreDasar,
+                'deviasi_rata_rata' => $deviasiDariRataRata,
+                'faktor_koreksi' => $faktorKoreksi,
+                'score' => $scoreAkhir,
+                'status_vs_rata_rata' => $item->disabilitas_count > $rataRataDisabilitas ? 'di atas rata-rata' :
+                    ($item->disabilitas_count < $rataRataDisabilitas ? 'di bawah rata-rata' : 'rata-rata')
             ];
         }
 
@@ -98,6 +125,26 @@ class LandingController extends Controller
         });
 
         // =====================================================
+        //              📊 DATA RATA-RATA UNTUK VIEW
+        // =====================================================
+
+        $statistikRataRata = [
+            'rata_rata_disabilitas' => round($rataRataDisabilitas, 2),
+            'total_disabilitas' => $totalDisabilitas,
+            'jumlah_kecamatan' => count($kecamatanData),
+            'maksimum_disabilitas' => $maxDisabilitas,
+            'minimum_disabilitas' => $kecamatanData->min('disabilitas_count')
+        ];
+
+        // Kecamatan dengan nilai di atas rata-rata
+        $kecamatanAboveAverage = array_filter($sawResults, function ($item) use ($rataRataDisabilitas) {
+            return $item['disabilitas_count'] > $rataRataDisabilitas;
+        });
+
+        // Kecamatan dengan nilai di bawah rata-rata
+        $kecamatanBelowAverage = array_filter($sawResults, function ($item) use ($rataRataDisabilitas) {
+            return $item['disabilitas_count'] < $rataRataDisabilitas;
+        });
 
         return view('pages.landing.index', compact(
             'kecamatanData',
@@ -105,7 +152,10 @@ class LandingController extends Controller
             'totalPenyandang',
             'penyandangTerbanyak',
             'top5',
-            'sawResults' // ⬅ dikirim ke view
+            'sawResults',
+            'statistikRataRata', // 📊 Data statistik rata-rata
+            'kecamatanAboveAverage', // 📈 Kecamatan di atas rata-rata
+            'kecamatanBelowAverage'  // 📉 Kecamatan di bawah rata-rata
         ));
     }
 }

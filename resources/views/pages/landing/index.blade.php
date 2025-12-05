@@ -422,6 +422,177 @@
         </div>
     </section>
 
+
+    <!-- Rata-rata & Statistik Section -->
+    <section class="py-5 bg-white" id="statistik">
+        <div class="container">
+            <h2 class="text-center section-title" data-aos="fade-up">📊 Statistik Rata-rata</h2>
+            <p class="text-center mb-5" data-aos="fade-up" data-aos-delay="100">
+                Analisis data penyandang disabilitas berdasarkan nilai rata-rata
+            </p>
+
+            <!-- Statistik Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="counter">{{ $statistikRataRata['rata_rata_disabilitas'] }}</div>
+                        <p class="stats-label">Rata-rata per Kecamatan</p>
+                    </div>
+                </div>
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="counter">{{ $statistikRataRata['maksimum_disabilitas'] }}</div>
+                        <p class="stats-label">Nilai Maksimum</p>
+                    </div>
+                </div>
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="counter">{{ $statistikRataRata['minimum_disabilitas'] }}</div>
+                        <p class="stats-label">Nilai Minimum</p>
+                    </div>
+                </div>
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="400">
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div class="counter">{{ count($kecamatanAboveAverage) }}</div>
+                        <p class="stats-label">Kecamatan di Atas Rata-rata</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distribusi Rata-rata -->
+            <div class="row">
+                <div class="col-md-6" data-aos="fade-right">
+                    <div class="chart-container">
+                        <h4 class="text-center mb-4">📈 Distribusi vs Rata-rata</h4>
+                        <canvas id="rataRataChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6" data-aos="fade-left">
+                    <div class="chart-container">
+                        <h4 class="text-center mb-4">🎯 Kategori Berdasarkan Rata-rata</h4>
+                        <canvas id="kategoriChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabel Perbandingan Rata-rata -->
+            <div class="row mt-5">
+                <div class="col-12" data-aos="fade-up">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">🏆 Kecamatan dengan Performa Terbaik (Di Atas Rata-rata)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="text-center">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Kecamatan</th>
+                                            <th>Jumlah Penyandang</th>
+                                            <th>Status</th>
+                                            <th>Skor SAW</th>
+                                            <th>Deviasi dari Rata-rata</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach(array_slice($kecamatanAboveAverage, 0, 10) as $i => $row)
+                                            <tr>
+                                                <td class="text-center">{{ $i + 1 }}</td>
+                                                <td>{{ $row['kecamatan'] }}</td>
+                                                <td class="text-center">{{ $row['disabilitas_count'] }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-success">{{ $row['status_vs_rata_rata'] }}</span>
+                                                </td>
+                                                <td class="text-center fw-bold text-primary">
+                                                    {{ number_format($row['score'], 4) }}
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-info">
+                                                        {{ number_format($row['deviasi_rata_rata'] * 100, 1) }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail SAW dengan Rata-rata -->
+            <div class="row mt-4">
+                <div class="col-12" data-aos="fade-up">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">🔍 Detail Perhitungan SAW dengan Koreksi Rata-rata</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="text-center">
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Kecamatan</th>
+                                            <th>Jumlah</th>
+                                            <th>Normalisasi</th>
+                                            <th>Score Dasar</th>
+                                            <th>Deviasi</th>
+                                            <th>Faktor Koreksi</th>
+                                            <th>Score Akhir</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($sawResults as $i => $row)
+                                            <tr>
+                                                <td class="text-center fw-bold">{{ $i + 1 }}</td>
+                                                <td>{{ $row['kecamatan'] }}</td>
+                                                <td class="text-center">{{ $row['disabilitas_count'] }}</td>
+                                                <td class="text-center">{{ number_format($row['normalisasi'], 4) }}</td>
+                                                <td class="text-center">{{ number_format($row['score_dasar'], 4) }}</td>
+                                                <td class="text-center">
+                                                    {{ number_format($row['deviasi_rata_rata'] * 100, 1) }}%
+                                                </td>
+                                                <td class="text-center">{{ number_format($row['faktor_koreksi'], 3) }}</td>
+                                                <td class="text-center fw-bold text-primary">
+                                                    {{ number_format($row['score'], 4) }}
+                                                </td>
+                                                <td class="text-center">
+                                                    @if($row['status_vs_rata_rata'] == 'di atas rata-rata')
+                                                        <span class="badge bg-success">↑ Above Avg</span>
+                                                    @elseif($row['status_vs_rata_rata'] == 'di bawah rata-rata')
+                                                        <span class="badge bg-warning">↓ Below Avg</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">→ Average</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Data Section -->
     <section class="py-5" id="data">
         <div class="container">
@@ -775,6 +946,100 @@
 
 
 
+        });
+
+        // Chart untuk distribusi rata-rata
+        const rataRataCtx = document.getElementById('rataRataChart').getContext('2d');
+        new Chart(rataRataCtx, {
+            type: 'line',
+            data: {
+                labels: @json(array_column($sawResults, 'kecamatan')),
+                datasets: [{
+                    label: 'Jumlah Penyandang',
+                    data: @json(array_column($sawResults, 'disabilitas_count')),
+                    borderColor: '#4361ee',
+                    backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Rata-rata',
+                    data: Array({{ count($sawResults) }}).fill({{ $statistikRataRata['rata_rata_disabilitas'] }}),
+                    borderColor: '#e74c3c',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Jumlah Penyandang'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart untuk kategori
+        const kategoriCtx = document.getElementById('kategoriChart').getContext('2d');
+        new Chart(kategoriCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Di Atas Rata-rata', 'Di Bawah Rata-rata', 'Rata-rata'],
+                datasets: [{
+                    data: [
+                {{ count($kecamatanAboveAverage) }},
+                {{ count($kecamatanBelowAverage) }},
+                        {{ count($sawResults) - count($kecamatanAboveAverage) - count($kecamatanBelowAverage) }}
+                    ],
+                    backgroundColor: [
+                        '#27ae60',
+                        '#e74c3c',
+                        '#f39c12'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label;
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         const sawLabels = @json(array_column($sawResults, 'kecamatan'));

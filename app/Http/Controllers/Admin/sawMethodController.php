@@ -16,8 +16,6 @@ class sawMethodController extends Controller
     //
     public function index()
     {
-        $data = tb_disabilitas::orderBy('poin', 'DESC')->get();
-        $warga = tb_warga::orderBy('nama', 'ASC')->get();
         $table = [];
         $rowna = [];
         $kali = [];
@@ -25,21 +23,27 @@ class sawMethodController extends Controller
         $infoMatrix = [];
         $info = [];
         $xnama = [];
+        // mengambil data dari database
+        $data = tb_disabilitas::orderBy('poin', 'DESC')->get();
+        $warga = tb_warga::orderBy('nama', 'ASC')->get();
+
         foreach ($warga as $i => $ix) {
             $xnama[$i] = $ix->nama;
             foreach ($data as $j => $an) {
                 $skor = tb_obser_disabilitas::where('id_warga', '=', $ix->id)->where('id_disabilitas', '=', $an->id)->first();
-                if (!$skor == null) {
+                if ($skor != null) {
                     $table[$i][$j] = $skor->skor;
                 } else
                     $table[$i][$j] = 0;
             }
         }
+        //
         foreach ($data as $i => $ix) {
             foreach ($warga as $j => $an) {
                 $rowna[$i][$j] = $table[$j][$i];
             }
         }
+        //ambil nilai max dari setiap kriteria
         foreach ($data as $i => $ix) {
             $rowMax[$i] = max($rowna[$i]);
         }
@@ -48,6 +52,7 @@ class sawMethodController extends Controller
         $wr[2] = $warga;
         $wr[3] = $rowMax;
 
+        // matrix normalisasi
         foreach ($wr[2] as $x => $it) {
             for ($m = 0; $m < count($wr[0]); $m++) {
                 if ((int) $wr[3][$m] == 0) {
@@ -65,6 +70,7 @@ class sawMethodController extends Controller
 
         $wr[4] = $kali;
 
+        // mANUAL PREFERENSI
         foreach ($wr[2] as $x => $it) {
             $tempx = 0;
             foreach ($wr[0] as $m => $itemp) {
@@ -79,6 +85,7 @@ class sawMethodController extends Controller
         $wr[6] = $info;
         $wr[7] = $infoMatrix;
 
+        //mengurutkan data berdasarkan preferensi
         $n = count($hasil);
         for ($i = 0; $i < $n - 1; $i++) {
             for ($j = 0; $j < $n - $i - 1; $j++) {
@@ -97,6 +104,7 @@ class sawMethodController extends Controller
         $xr = [];
         $xr[0] = $xnama;
         $xr[1] = $hasil;
+
         $wr[8] = $xr;
         $wr[9] = DB::table('tb_kodepos')
             ->select('id', 'kodepos', 'kecamatan')
